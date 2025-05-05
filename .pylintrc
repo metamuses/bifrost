@@ -1,0 +1,7 @@
+[FORMAT]
+
+max-line-length=120
+
+disable=C0103
+disable=C0115
+disable=C0116
