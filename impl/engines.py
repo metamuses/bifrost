@@ -1,5 +1,5 @@
 class BasicQueryEngine:
-    def __init__(self, data):
+    def __init__(self):
         self.journalQuery = []
         self.categoryQuery = []
 

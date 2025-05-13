@@ -5,12 +5,12 @@ class Handler:
     def getDbPathOrUrl(self):
         return self.dbPathOrUrl
 
-    def setDbPathOrUrl(self, pathOrUrl):
-        if isinstance(pathOrUrl, str):
-            self.dbPathOrUrl = pathOrUrl
+    def setDbPathOrUrl(self, dbPathOrUrl):
+        if isinstance(dbPathOrUrl, str):
+            self.dbPathOrUrl = dbPathOrUrl
             return True
         else:
-            raise ValueError("Path or URL must be a string")
+            raise False
 
 class UploadHandler(Handler):
     def __init__(self):
@@ -29,10 +29,10 @@ class JournalUploadHandler(UploadHandler):
         if not self.getDbPathOrUrl():
             raise ValueError("Database path or URL is not set")
 
-        print(f"Pushing data to {self.getDbPathOrUrl()}")
+        print(f"Pushing {path} to {self.getDbPathOrUrl()}")
         return True
 
-class CategoryUploadHandler(Handler):
+class CategoryUploadHandler(UploadHandler):
     def __init__(self):
         super().__init__()
 
@@ -41,7 +41,7 @@ class CategoryUploadHandler(Handler):
         if not self.getDbPathOrUrl():
             raise ValueError("Database path or URL is not set")
 
-        print(f"Pushing data to {self.getDbPathOrUrl()}")
+        print(f"Pushing {path} to {self.getDbPathOrUrl()}")
         return True
 
 class QueryHandler(Handler):
