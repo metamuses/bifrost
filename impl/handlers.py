@@ -10,7 +10,7 @@ class Handler:
             self.dbPathOrUrl = dbPathOrUrl
             return True
         else:
-            raise False
+            return False
 
 class UploadHandler(Handler):
     def __init__(self):
