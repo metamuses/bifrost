@@ -7,8 +7,8 @@ class IdentifiableEntity:
         pass
 
 class Area(IdentifiableEntity):
-    # TODO: Implement this class
-    pass
+    def __init__(self, id):
+        super().__init__(id)
 
 class Category(IdentifiableEntity):
     def __init__(self, id, quartile=None):
