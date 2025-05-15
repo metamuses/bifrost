@@ -1,3 +1,7 @@
+import json
+import sqlite3
+import pandas as pd
+
 class Handler:
     def __init__(self):
         self.dbPathOrUrl = ""
@@ -25,9 +29,8 @@ class JournalUploadHandler(UploadHandler):
         super().__init__()
 
     def pushDataToDb(self, path):
-        # TODO: Implement this method
         if not self.getDbPathOrUrl():
-            raise ValueError("Database path or URL is not set")
+            return False
 
         print(f"Pushing {path} to {self.getDbPathOrUrl()}")
         return True
@@ -37,11 +40,83 @@ class CategoryUploadHandler(UploadHandler):
         super().__init__()
 
     def pushDataToDb(self, path):
-        # TODO: Implement this method
         if not self.getDbPathOrUrl():
-            raise ValueError("Database path or URL is not set")
+            return False
 
-        print(f"Pushing {path} to {self.getDbPathOrUrl()}")
+        # Read JSON file
+        with open(path) as f:
+            data = json.load(f)
+
+        # Initialize variables
+        journals, categories_set, areas_set = [], set(), set()
+        journal_categories, journal_areas = [], []
+        areas_categories = set()
+
+        # Normalize data
+        for idx, entry in enumerate(data):
+            journal_id = idx + 1
+            ids = entry.get("identifiers", [])
+            journals.append({
+                "id": journal_id,
+                "identifier_1": ids[0] if len(ids) > 0 else None,
+                "identifier_2": ids[1] if len(ids) > 1 else None,
+            })
+
+            entry_categories = [
+                (cat.get("id"), cat.get("quartile") or None)
+                for cat in entry.get("categories", [])
+            ]
+            entry_areas = entry.get("areas", [])
+
+            # Collect sets
+            for cat in entry_categories:
+                categories_set.add(cat)
+                journal_categories.append((journal_id, cat))
+            for area in entry_areas:
+                areas_set.add(area)
+                journal_areas.append((journal_id, area))
+
+            # Area-category associations
+            for area in entry_areas:
+                for cat in entry_categories:
+                    areas_categories.add((area, cat))
+
+        # Deduplicate categories and areas
+        category_id_map = {v: i+1 for i, v in enumerate(categories_set)}
+        area_id_map = {v: i+1 for i, v in enumerate(areas_set)}
+
+        # DataFrames
+        df_journals = pd.DataFrame(journals)
+        df_categories = pd.DataFrame([
+            {"id": cid, "name": name, "quartile": quartile}
+            for (name, quartile), cid in category_id_map.items()
+        ])
+        df_areas = pd.DataFrame([
+            {"id": aid, "name": name}
+            for name, aid in area_id_map.items()
+        ])
+        df_journal_categories = pd.DataFrame([
+            {"journal_id": jid, "category_id": category_id_map[c]}
+            for jid, c in journal_categories
+        ]).drop_duplicates()
+        df_journal_areas = pd.DataFrame([
+            {"journal_id": jid, "area_id": area_id_map[a]}
+            for jid, a in journal_areas
+        ]).drop_duplicates()
+        df_areas_categories = pd.DataFrame([
+            {"area_id": area_id_map[a], "category_id": category_id_map[c]}
+            for a, c in areas_categories
+        ]).drop_duplicates()
+
+        # Save to SQLite
+        with sqlite3.connect("relational.db") as con:
+            df_journals.to_sql("journals", con, index=False, if_exists="replace")
+            df_categories.to_sql("categories", con, index=False, if_exists="replace")
+            df_areas.to_sql("areas", con, index=False, if_exists="replace")
+            df_journal_categories.to_sql("journal_categories", con, index=False, if_exists="replace")
+            df_journal_areas.to_sql("journal_areas", con, index=False, if_exists="replace")
+            df_areas_categories.to_sql("areas_categories", con, index=False, if_exists="replace")
+
         return True
 
 class QueryHandler(Handler):
@@ -49,8 +124,28 @@ class QueryHandler(Handler):
         super().__init__()
 
     def getById(self, id):
-        # TODO: Implement this method
-        pass
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            # Check if the area exists
+            area_query = f"SELECT * FROM areas WHERE name = '{id}'"
+            area_df = pd.read_sql(area_query, con)
+            if not area_df.empty:
+                return area_df.drop(columns=["id"])
+
+            # Check if the category exists
+            category_query = f"SELECT * FROM categories WHERE name = '{id}'"
+            category_df = pd.read_sql(category_query, con)
+            if not category_df.empty:
+                return category_df.drop(columns=["id"])
+
+            # Check if the journal exists
+            journal_query = f"SELECT * FROM journals WHERE identifier_1 = '{id}' OR identifier_2 = '{id}'"
+            journal_df = pd.read_sql(journal_query, con)
+            if not journal_df.empty:
+                return journal_df.drop(columns=["id"])
+
+            # TODO: add queries for blazegraph
+
+        return None
 
 class JournalQueryHandler(QueryHandler):
     def __init__(self):
@@ -85,21 +180,59 @@ class CategoryQueryHandler(QueryHandler):
         super().__init__()
 
     def getAllCategories(self):
-        # TODO: Implement this method
-        pass
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            df = pd.read_sql("SELECT * FROM categories", con)
+
+        return df.drop(columns=["id"])
 
     def getAllAreas(self):
-        # TODO: Implement this method
-        pass
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            df = pd.read_sql("SELECT * FROM areas", con)
 
-    def getCategoriesWithQuartile(self, quartiles):
-        # TODO: Implement this method
-        pass
+        return df.drop(columns=["id"])
 
-    def getCategoriesAssignedToAreas(self, area_ids):
-        # TODO: Implement this method
-        pass
+    def getCategoriesWithQuartile(self, quartiles=set()):
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            if not quartiles:
+                query = "SELECT * FROM categories"
+            else:
+                q = ','.join(f"'{item}'" for item in quartiles)
+                query = f"SELECT * FROM categories WHERE quartile IN ({q})"
 
-    def getAreasAssignedToCategories(self, category_ids):
-        # TODO: Implement this method
-        pass
+            df = pd.read_sql(query, con)
+
+        return df.drop(columns=["id"])
+
+    def getCategoriesAssignedToAreas(self, area_ids=set()):
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            if not area_ids:
+                query = "SELECT * FROM categories"
+            else:
+                a = ','.join(f"'{item}'" for item in area_ids)
+                query = f"""
+                    SELECT * FROM categories
+                    JOIN areas_categories ON areas_categories.category_id = categories.id
+                    JOIN areas ON areas.id = areas_categories.area_id
+                    WHERE areas.name IN ({a})
+                """
+
+            df = pd.read_sql(query, con)
+
+        return df.drop(columns=["id"])
+
+    def getAreasAssignedToCategories(self, category_ids=set()):
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            if not category_ids:
+                query = "SELECT * FROM areas"
+            else:
+                c = ','.join(f"'{item}'" for item in category_ids)
+                query = f"""
+                    SELECT * FROM areas
+                    JOIN areas_categories ON areas_categories.area_id = areas.id
+                    JOIN categories ON categories.id = areas_categories.category_id
+                    WHERE categories.name IN ({c})
+                """
+
+            df = pd.read_sql(query, con)
+
+        return df.drop(columns=["id"])
