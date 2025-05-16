@@ -44,12 +44,15 @@ class CategoryUploadHandler(UploadHandler):
             return False
 
         # Read JSON file
-        with open(path) as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         # Initialize variables
-        journals, categories_set, areas_set = [], set(), set()
-        journal_categories, journal_areas = [], []
+        journals = []
+        categories_set = set()
+        areas_set = set()
+        journal_categories = []
+        journal_areas = []
         areas_categories = set()
 
         # Normalize data
@@ -72,6 +75,7 @@ class CategoryUploadHandler(UploadHandler):
             for cat in entry_categories:
                 categories_set.add(cat)
                 journal_categories.append((journal_id, cat))
+
             for area in entry_areas:
                 areas_set.add(area)
                 journal_areas.append((journal_id, area))
@@ -145,7 +149,7 @@ class QueryHandler(Handler):
 
             # TODO: add queries for blazegraph
 
-        return None
+        return pd.DataFrame()
 
 class JournalQueryHandler(QueryHandler):
     def __init__(self):
@@ -196,8 +200,10 @@ class CategoryQueryHandler(QueryHandler):
             if not quartiles:
                 query = "SELECT * FROM categories"
             else:
-                q = ','.join(f"'{item}'" for item in quartiles)
+                q = ','.join(f"'{item}'" for item in quartiles if item is not None)
                 query = f"SELECT * FROM categories WHERE quartile IN ({q})"
+                if None in quartiles:
+                    query += " OR quartile IS NULL"
 
             df = pd.read_sql(query, con)
 
@@ -206,11 +212,11 @@ class CategoryQueryHandler(QueryHandler):
     def getCategoriesAssignedToAreas(self, area_ids=set()):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             if not area_ids:
-                query = "SELECT * FROM categories"
+                query = "SELECT categories.name, categories.quartile FROM categories"
             else:
                 a = ','.join(f"'{item}'" for item in area_ids)
                 query = f"""
-                    SELECT * FROM categories
+                    SELECT DISTINCT categories.name, categories.quartile FROM categories
                     JOIN areas_categories ON areas_categories.category_id = categories.id
                     JOIN areas ON areas.id = areas_categories.area_id
                     WHERE areas.name IN ({a})
@@ -218,16 +224,16 @@ class CategoryQueryHandler(QueryHandler):
 
             df = pd.read_sql(query, con)
 
-        return df.drop(columns=["id"])
+        return df
 
     def getAreasAssignedToCategories(self, category_ids=set()):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             if not category_ids:
-                query = "SELECT * FROM areas"
+                query = "SELECT areas.name FROM areas"
             else:
                 c = ','.join(f"'{item}'" for item in category_ids)
                 query = f"""
-                    SELECT * FROM areas
+                    SELECT DISTINCT areas.name FROM areas
                     JOIN areas_categories ON areas_categories.area_id = areas.id
                     JOIN categories ON categories.id = areas_categories.category_id
                     WHERE categories.name IN ({c})
@@ -235,4 +241,4 @@ class CategoryQueryHandler(QueryHandler):
 
             df = pd.read_sql(query, con)
 
-        return df.drop(columns=["id"])
+        return df
