@@ -212,11 +212,16 @@ class CategoryQueryHandler(QueryHandler):
     def getCategoriesAssignedToAreas(self, area_ids=set()):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             if not area_ids:
-                query = "SELECT categories.name, categories.quartile FROM categories"
+                query = """
+                    SELECT DISTINCT categories.name, categories.quartile
+                    FROM categories
+                    JOIN areas_categories ON categories.id = areas_categories.category_id;
+                """
             else:
                 a = ','.join(f"'{item}'" for item in area_ids)
                 query = f"""
-                    SELECT DISTINCT categories.name, categories.quartile FROM categories
+                    SELECT DISTINCT categories.name, categories.quartile
+                    FROM categories
                     JOIN areas_categories ON areas_categories.category_id = categories.id
                     JOIN areas ON areas.id = areas_categories.area_id
                     WHERE areas.name IN ({a})
@@ -229,7 +234,11 @@ class CategoryQueryHandler(QueryHandler):
     def getAreasAssignedToCategories(self, category_ids=set()):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             if not category_ids:
-                query = "SELECT areas.name FROM areas"
+                query = """
+                    SELECT DISTINCT areas.name
+                    FROM areas
+                    JOIN areas_categories ON areas.id = areas_categories.area_id;
+                """
             else:
                 c = ','.join(f"'{item}'" for item in category_ids)
                 query = f"""
