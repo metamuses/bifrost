@@ -1,3 +1,6 @@
+from impl.models import Category, Area, Journal
+from impl.handlers import CategoryQueryHandler, JournalQueryHandler
+
 class BasicQueryEngine:
     def __init__(self):
         self.journalQuery = []
@@ -48,8 +51,14 @@ class BasicQueryEngine:
         pass
 
     def getAllCategories(self):
-        # TODO: Implement this class
-        pass
+        df = self.categoryQuery[0].getAllCategories()
+        categories = []
+
+        for index, row in df.iterrows():
+            category = Category(row["name"], row["quartile"])
+            categories.append(category)
+
+        return categories
 
     def getAllAreas(self):
         # TODO: Implement this class
