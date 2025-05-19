@@ -1,6 +1,8 @@
 from impl.models import Category, Area, Journal
 from impl.handlers import CategoryQueryHandler, JournalQueryHandler
 
+import pandas as pd
+
 class BasicQueryEngine:
     def __init__(self):
         self.journalQuery = []
@@ -51,50 +53,55 @@ class BasicQueryEngine:
         pass
 
     def getAllCategories(self):
-        df = self.categoryQuery[0].getAllCategories()
-        categories = []
+        all_dfs = [query.getAllCategories() for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
-        for index, row in df.iterrows():
+        categories = []
+        for index, row in merged_df.iterrows():
             category = Category(row["name"], row["quartile"])
             categories.append(category)
 
         return categories
 
     def getAllAreas(self):
-        df = self.categoryQuery[0].getAllAreas()
-        areas = []
+        all_dfs = [query.getAllAreas() for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
-        for index, row in df.iterrows():
+        areas = []
+        for index, row in merged_df.iterrows():
             area = Area(row["name"])
             areas.append(area)
 
         return areas
 
     def getCategoriesWithQuartile(self, quartiles):
-        df = self.categoryQuery[0].getCategoriesWithQuartile(quartiles)
-        categories = []
+        all_dfs = [query.getCategoriesWithQuartile(quartiles) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
-        for index, row in df.iterrows():
+        categories = []
+        for index, row in merged_df.iterrows():
             category = Category(row["name"], row["quartile"])
             categories.append(category)
 
         return categories
 
     def getCategoriesAssignedToAreas(self, area_ids):
-        df = self.categoryQuery[0].getCategoriesAssignedToAreas(area_ids)
-        categories = []
+        all_dfs = [query.getCategoriesAssignedToAreas(area_ids) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
-        for index, row in df.iterrows():
+        categories = []
+        for index, row in merged_df.iterrows():
             category = Category(row["name"], row["quartile"])
             categories.append(category)
 
         return categories
 
     def getAreasAssignedToCategories(self, category_ids):
-        df = self.categoryQuery[0].getAreasAssignedToCategories(category_ids)
-        areas = []
+        all_dfs = [query.getAreasAssignedToCategories(category_ids) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
-        for index, row in df.iterrows():
+        areas = []
+        for index, row in merged_df.iterrows():
             area = Area(row["name"])
             areas.append(area)
 
