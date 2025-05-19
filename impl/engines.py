@@ -61,20 +61,44 @@ class BasicQueryEngine:
         return categories
 
     def getAllAreas(self):
-        # TODO: Implement this class
-        pass
+        df = self.categoryQuery[0].getAllAreas()
+        areas = []
+
+        for index, row in df.iterrows():
+            area = Area(row["name"])
+            areas.append(area)
+
+        return areas
 
     def getCategoriesWithQuartile(self, quartiles):
-        # TODO: Implement this class
-        pass
+        df = self.categoryQuery[0].getCategoriesWithQuartile(quartiles)
+        categories = []
+
+        for index, row in df.iterrows():
+            category = Category(row["name"], row["quartile"])
+            categories.append(category)
+
+        return categories
 
     def getCategoriesAssignedToAreas(self, area_ids):
-        # TODO: Implement this class
-        pass
+        df = self.categoryQuery[0].getCategoriesAssignedToAreas(area_ids)
+        categories = []
+
+        for index, row in df.iterrows():
+            category = Category(row["name"], row["quartile"])
+            categories.append(category)
+
+        return categories
 
     def getAreasAssignedToCategories(self, category_ids):
-        # TODO: Implement this class
-        pass
+        df = self.categoryQuery[0].getAreasAssignedToCategories(category_ids)
+        areas = []
+
+        for index, row in df.iterrows():
+            area = Area(row["name"])
+            areas.append(area)
+
+        return areas
 
 class FullQueryEngine(BasicQueryEngine):
     def getJournalsInCategoriesWithQuartile(self, category_ids, quartiles):
