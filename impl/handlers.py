@@ -48,37 +48,38 @@ class CategoryUploadHandler(UploadHandler):
             data = json.load(f)
 
         # Initialize variables
-        journals = []
-        categories_set = set()
-        areas_set = set()
-        journal_categories = []
-        journal_areas = []
+        journals = set()
+        categories = set()
+        areas = set()
+        journal_categories = set()
+        journal_areas = set()
         areas_categories = set()
 
         # Normalize data
-        for idx, entry in enumerate(data):
-            journal_id = idx + 1
-            ids = entry.get("identifiers", [])
-            journals.append({
-                "id": journal_id,
-                "identifier_1": ids[0] if len(ids) > 0 else None,
-                "identifier_2": ids[1] if len(ids) > 1 else None,
-            })
+        for index, entry in enumerate(data):
+            journal_id = index + 1
+            identifiers = entry.get("identifiers", [])
+            journals.add((
+                journal_id,
+                identifiers[0] if len(identifiers) > 0 else None,
+                identifiers[1] if len(identifiers) > 1 else None,
+            ))
 
             entry_categories = [
                 (cat.get("id"), cat.get("quartile") or None)
                 for cat in entry.get("categories", [])
             ]
+
             entry_areas = entry.get("areas", [])
 
             # Collect sets
             for cat in entry_categories:
-                categories_set.add(cat)
-                journal_categories.append((journal_id, cat))
+                categories.add(cat)
+                journal_categories.add((journal_id, cat))
 
             for area in entry_areas:
-                areas_set.add(area)
-                journal_areas.append((journal_id, area))
+                areas.add(area)
+                journal_areas.add((journal_id, area))
 
             # Area-category associations
             for area in entry_areas:
@@ -86,34 +87,39 @@ class CategoryUploadHandler(UploadHandler):
                     areas_categories.add((area, cat))
 
         # Deduplicate categories and areas
-        category_id_map = {v: i+1 for i, v in enumerate(categories_set)}
-        area_id_map = {v: i+1 for i, v in enumerate(areas_set)}
+        category_id_map = {v: i+1 for i, v in enumerate(categories)}
+        area_id_map = {v: i+1 for i, v in enumerate(areas)}
 
         # DataFrames
         df_journals = pd.DataFrame(journals)
+
         df_categories = pd.DataFrame([
             {"id": cid, "name": name, "quartile": quartile}
             for (name, quartile), cid in category_id_map.items()
         ])
+
         df_areas = pd.DataFrame([
             {"id": aid, "name": name}
             for name, aid in area_id_map.items()
         ])
+
         df_journal_categories = pd.DataFrame([
             {"journal_id": jid, "category_id": category_id_map[c]}
             for jid, c in journal_categories
         ]).drop_duplicates()
+
         df_journal_areas = pd.DataFrame([
             {"journal_id": jid, "area_id": area_id_map[a]}
             for jid, a in journal_areas
         ]).drop_duplicates()
+
         df_areas_categories = pd.DataFrame([
             {"area_id": area_id_map[a], "category_id": category_id_map[c]}
             for a, c in areas_categories
         ]).drop_duplicates()
 
         # Save to SQLite
-        with sqlite3.connect("relational.db") as con:
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
             df_journals.to_sql("journals", con, index=False, if_exists="replace")
             df_categories.to_sql("categories", con, index=False, if_exists="replace")
             df_areas.to_sql("areas", con, index=False, if_exists="replace")
@@ -242,7 +248,8 @@ class CategoryQueryHandler(QueryHandler):
             else:
                 c = ','.join(f"'{item}'" for item in category_ids)
                 query = f"""
-                    SELECT DISTINCT areas.name FROM areas
+                    SELECT DISTINCT areas.name
+                    FROM areas
                     JOIN areas_categories ON areas_categories.area_id = areas.id
                     JOIN categories ON categories.id = areas_categories.category_id
                     WHERE categories.name IN ({c})
