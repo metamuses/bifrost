@@ -1,12 +1,12 @@
 class IdentifiableEntity:
     def __init__(self, id):
         if isinstance(id, list):
-            self.id = set(id)
+            self.id = id
         elif isinstance(id, str):
-            self.id = set([id])
+            self.id = [id]
 
     def getIds(self):
-        return list(self.id)
+        return self.id
 
 class Area(IdentifiableEntity):
     def __init__(self, id):
