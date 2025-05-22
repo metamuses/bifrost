@@ -91,18 +91,20 @@ class CategoryUploadHandler(UploadHandler):
             data = json.load(f)
 
         # Initialize variables
-        journals = set()
+        journals = []
+
         categories = set()
         areas = set()
-        journal_categories = set()
-        journal_areas = set()
-        areas_categories = set()
+
+        journal_categories = []
+        journal_areas = []
+        areas_categories = []
 
         # Normalize data
         for index, entry in enumerate(data):
             journal_id = index + 1
             identifiers = entry.get("identifiers", [])
-            journals.add((
+            journals.append((
                 journal_id,
                 identifiers[0] if len(identifiers) > 0 else None,
                 identifiers[1] if len(identifiers) > 1 else None,
@@ -118,23 +120,26 @@ class CategoryUploadHandler(UploadHandler):
             # Collect sets
             for cat in entry_categories:
                 categories.add(cat)
-                journal_categories.add((journal_id, cat))
+                journal_categories.append((journal_id, cat))
 
             for area in entry_areas:
                 areas.add(area)
-                journal_areas.add((journal_id, area))
+                journal_areas.append((journal_id, area))
 
             # Area-category associations
             for area in entry_areas:
                 for cat in entry_categories:
-                    areas_categories.add((area, cat))
+                    areas_categories.append((area, cat))
 
         # Deduplicate categories and areas
         category_id_map = {v: i+1 for i, v in enumerate(categories)}
         area_id_map = {v: i+1 for i, v in enumerate(areas)}
 
         # DataFrames
-        df_journals = pd.DataFrame(journals)
+        df_journals = pd.DataFrame([
+            {"id": jid, "identifier_1": id1, "identifier_2": id2}
+            for jid, id1, id2 in journals
+        ])
 
         df_categories = pd.DataFrame([
             {"id": cid, "name": name, "quartile": quartile}
