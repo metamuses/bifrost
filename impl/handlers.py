@@ -1,6 +1,8 @@
 import json
 import sqlite3
 import pandas as pd
+from rdflib import Graph, URIRef, Literal, RDF
+from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 
 class Handler:
     def __init__(self):
@@ -32,7 +34,48 @@ class JournalUploadHandler(UploadHandler):
         if not self.getDbPathOrUrl():
             return False
 
-        print(f"Pushing {path} to {self.getDbPathOrUrl()}")
+        # Define class
+        Journal = URIRef("https://schema.org/Periodical")
+
+        # Define attributes of the class
+        title = URIRef("https://schema.org/name")
+        identifier = URIRef("https://schema.org/identifier")
+        language = URIRef("https://schema.org/inLanguage")
+        publisher = URIRef("https://schema.org/publisher")
+        seal = URIRef("https://www.wikidata.org/wiki/Q73548471")
+        license = URIRef("https://schema.org/license")
+        apc = URIRef("https://www.wikidata.org/wiki/Q15291071")
+
+        # Define base URL
+        base_url = "https://github.com/epistrephein/journaler/"
+
+        graph = Graph()
+
+        df = pd.read_csv(path, keep_default_na=False)
+        df["issn_eissn"] = df["Journal ISSN (print version)"] + "," + df["Journal EISSN (online version)"]
+
+        for idx, row in df.iterrows():
+            local_id = "journal-" + str(idx)
+            subj = URIRef(base_url + local_id)
+
+            graph.add((subj, RDF.type, Journal))
+            graph.add((subj, title, Literal(row["Journal title"])))
+            graph.add((subj, identifier, Literal (row["issn_eissn"])))
+            graph.add((subj, language, Literal (row["Languages in which the journal accepts manuscripts"])))
+            graph.add((subj, publisher, Literal(row["Publisher"])))
+            graph.add((subj, seal, Literal(row["DOAJ Seal"])))
+            graph.add((subj, license, Literal (row["Journal license"])))
+            graph.add((subj, apc, Literal(row["APC"])))
+
+        store = SPARQLUpdateStore()
+        endpoint = self.getDbPathOrUrl()
+
+        store.open((endpoint, endpoint))
+        data = graph.serialize(format="nt")
+        query = f"INSERT DATA {{\n{data}\n}}"
+        store.update(query)
+        store.close()
+
         return True
 
 class CategoryUploadHandler(UploadHandler):
