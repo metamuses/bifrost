@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 from rdflib import Graph, URIRef, Literal, RDF
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
+from sparql_dataframe import get
 
 class Handler:
     def __init__(self):
@@ -206,32 +207,89 @@ class QueryHandler(Handler):
         return pd.DataFrame()
 
 class JournalQueryHandler(QueryHandler):
+    BASE_QUERY = """
+        PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX schema: <https://schema.org/>
+        PREFIX wiki: <https://www.wikidata.org/wiki/>
+
+        SELECT ?title ?identifier ?languages ?publisher ?seal ?licence ?apc
+        WHERE {{
+            ?journal rdf:type schema:Periodical ;
+                     schema:name ?title ;
+                     schema:identifier ?identifier ;
+                     schema:inLanguage ?languages ;
+                     schema:publisher ?publisher ;
+                     wiki:Q73548471 ?seal ;
+                     schema:license ?licence ;
+                     wiki:Q15291071 ?apc .
+                     {filter}
+        }}
+    """
+
     def __init__(self):
         super().__init__()
 
     def getAllJournals(self):
-        # TODO: Implement this method
-        pass
+        filter = ""
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
     def getJournalsWithTitle(self, partialTitle):
-        # TODO: Implement this method
-        pass
+        filter = f'FILTER(CONTAINS(LCASE(STR(?title)), LCASE("{partialTitle}")))'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
     def getJournalsPublishedBy(self, partialName):
-        # TODO: Implement this method
-        pass
+        filter = f'FILTER(CONTAINS(LCASE(STR(?publisher)), LCASE("{partialName}")))'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
     def getJournalsWithLicense(self, licenses):
-        # TODO: Implement this method
-        pass
+        if not licenses:
+            filter = 'FILTER(STR(?licence) = "")'
+        else:
+            conditions = []
+            for lic in licenses:
+                condition = f'CONTAINS(CONCAT(", ", STR(?licence), ", "), ", {lic}, ")'
+                conditions.append(condition)
+
+        filter = "FILTER(" + " && ".join(conditions) + ")"
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
     def getJournalsWithAPC(self):
-        # TODO: Implement this method
-        pass
+        filter = 'FILTER(STR(?apc) = "Yes")'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
     def getJournalsWithDOAJSeal(self):
-        # TODO: Implement this method
-        pass
+        filter = 'FILTER(STR(?seal) = "Yes")'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
 
 class CategoryQueryHandler(QueryHandler):
     def __init__(self):
