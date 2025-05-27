@@ -183,28 +183,8 @@ class QueryHandler(Handler):
         super().__init__()
 
     def getById(self, id):
-        with sqlite3.connect(self.getDbPathOrUrl()) as con:
-            # Check if the area exists
-            area_query = f"SELECT * FROM areas WHERE name = '{id}'"
-            area_df = pd.read_sql(area_query, con)
-            if not area_df.empty:
-                return area_df.drop(columns=["id"])
-
-            # Check if the category exists
-            category_query = f"SELECT * FROM categories WHERE name = '{id}'"
-            category_df = pd.read_sql(category_query, con)
-            if not category_df.empty:
-                return category_df.drop(columns=["id"])
-
-            # Check if the journal exists
-            journal_query = f"SELECT * FROM journals WHERE identifier_1 = '{id}' OR identifier_2 = '{id}'"
-            journal_df = pd.read_sql(journal_query, con)
-            if not journal_df.empty:
-                return journal_df.drop(columns=["id"])
-
-            # TODO: add queries for blazegraph
-
-        return pd.DataFrame()
+        # Implemented in subclasses
+        pass
 
 class JournalQueryHandler(QueryHandler):
     BASE_QUERY = """
@@ -295,15 +275,39 @@ class CategoryQueryHandler(QueryHandler):
     def __init__(self):
         super().__init__()
 
+    def getById(self, id):
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            # Check if the area exists
+            area_query = f"SELECT * FROM areas WHERE name = '{id}' LIMIT 1"
+            area_df = pd.read_sql(area_query, con)
+            if not area_df.empty:
+                return area_df.assign(model="area")
+
+            # Check if the category exists
+            category_query = f"SELECT * FROM categories WHERE name = '{id}' LIMIT 1"
+            category_df = pd.read_sql(category_query, con)
+            if not category_df.empty:
+                return category_df.assign(model="category")
+
+            # Check if the journal exists
+            journal_query = f"SELECT * FROM journals WHERE identifier_1 = '{id}' OR identifier_2 = '{id}' LIMIT 1"
+            journal_df = pd.read_sql(journal_query, con)
+            if not journal_df.empty:
+                return journal_df.assign(model="journal")
+
+        return pd.DataFrame()
+
     def getAllCategories(self):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
-            df = pd.read_sql("SELECT * FROM categories", con)
+            query = "SELECT * FROM categories"
+            df = pd.read_sql(query, con)
 
         return df.drop(columns=["id"])
 
     def getAllAreas(self):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
-            df = pd.read_sql("SELECT * FROM areas", con)
+            query = "SELECT * FROM areas"
+            df = pd.read_sql(query, con)
 
         return df.drop(columns=["id"])
 
