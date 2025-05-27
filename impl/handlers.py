@@ -258,14 +258,14 @@ class JournalQueryHandler(QueryHandler):
 
     def getJournalsWithLicense(self, licenses):
         if not licenses:
-            filter = 'FILTER(STR(?licence) = "")'
+            return self.getAllJournals()
         else:
             conditions = []
             for lic in licenses:
                 condition = f'CONTAINS(CONCAT(", ", STR(?licence), ", "), ", {lic}, ")'
                 conditions.append(condition)
 
-        filter = "FILTER(" + " && ".join(conditions) + ")"
+        filter = "FILTER(" + " || ".join(conditions) + ")"
         query = self.BASE_QUERY.format(filter=filter)
 
         endpoint = self.getDbPathOrUrl()
