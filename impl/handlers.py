@@ -97,8 +97,8 @@ class CategoryUploadHandler(UploadHandler):
         categories = set()
         areas = set()
 
-        journal_categories = []
-        journal_areas = []
+        journals_categories = []
+        journals_areas = []
         areas_categories = []
 
         # Normalize data
@@ -121,11 +121,11 @@ class CategoryUploadHandler(UploadHandler):
             # Collect sets
             for cat in entry_categories:
                 categories.add(cat)
-                journal_categories.append((journal_id, cat))
+                journals_categories.append((journal_id, cat))
 
             for area in entry_areas:
                 areas.add(area)
-                journal_areas.append((journal_id, area))
+                journals_areas.append((journal_id, area))
 
             # Area-category associations
             for area in entry_areas:
@@ -152,14 +152,14 @@ class CategoryUploadHandler(UploadHandler):
             for name, aid in area_id_map.items()
         ])
 
-        df_journal_categories = pd.DataFrame([
+        df_journals_categories = pd.DataFrame([
             {"journal_id": jid, "category_id": category_id_map[c]}
-            for jid, c in journal_categories
+            for jid, c in journals_categories
         ]).drop_duplicates()
 
-        df_journal_areas = pd.DataFrame([
+        df_journals_areas = pd.DataFrame([
             {"journal_id": jid, "area_id": area_id_map[a]}
-            for jid, a in journal_areas
+            for jid, a in journals_areas
         ]).drop_duplicates()
 
         df_areas_categories = pd.DataFrame([
@@ -172,8 +172,8 @@ class CategoryUploadHandler(UploadHandler):
             df_journals.to_sql("journals", con, index=False, if_exists="replace")
             df_categories.to_sql("categories", con, index=False, if_exists="replace")
             df_areas.to_sql("areas", con, index=False, if_exists="replace")
-            df_journal_categories.to_sql("journal_categories", con, index=False, if_exists="replace")
-            df_journal_areas.to_sql("journal_areas", con, index=False, if_exists="replace")
+            df_journals_categories.to_sql("journals_categories", con, index=False, if_exists="replace")
+            df_journals_areas.to_sql("journals_areas", con, index=False, if_exists="replace")
             df_areas_categories.to_sql("areas_categories", con, index=False, if_exists="replace")
 
         return True
