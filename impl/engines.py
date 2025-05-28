@@ -29,28 +29,70 @@ class BasicQueryEngine:
         pass
 
     def getAllJournals(self):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getAllJournals() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsWithTitle(self, partialTitle):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsWithTitle(partialTitle) for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsPublishedBy(self, partialName):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsPublishedBy(partialName) for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsWithLicense(self, licenses):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsWithLicense(licenses) for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsWithAPC(self):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsWithAPC() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsWithDOASeal(self):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsWithDOAJSeal() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        journals = []
+        for index, row in merged_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getAllCategories(self):
         all_dfs = [query.getAllCategories() for query in self.categoryQuery]
@@ -106,6 +148,17 @@ class BasicQueryEngine:
             areas.append(area)
 
         return areas
+
+    def buildJournal(self, row):
+        ids = [item for item in row["identifier"].split(",") if item]
+        title = row["title"]
+        languages = [item for item in row["languages"].split(", ") if item]
+        publisher = row["publisher"]
+        seal = row["seal"] == "Yes"
+        licence = row["licence"]
+        apc = row["apc"] == "Yes"
+
+        return Journal(ids, title, languages, publisher, seal, licence, apc)
 
 class FullQueryEngine(BasicQueryEngine):
     def getJournalsInCategoriesWithQuartile(self, category_ids, quartiles):
