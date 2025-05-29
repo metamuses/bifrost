@@ -209,6 +209,18 @@ class JournalQueryHandler(QueryHandler):
     def __init__(self):
         super().__init__()
 
+    def getById(self, id):
+        if not id:
+            return pd.DataFrame()
+
+        filter = f'FILTER(CONTAINS(CONCAT(",", STR(?identifier), ","), ",{id},"))'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
+
     def getAllJournals(self):
         filter = ""
         query = self.BASE_QUERY.format(filter=filter)
