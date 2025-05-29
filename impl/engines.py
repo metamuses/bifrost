@@ -25,8 +25,26 @@ class BasicQueryEngine:
         return True
 
     def getEntityById(self, id):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getById(id) for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+        if not merged_df.empty:
+            return self.buildJournal(merged_df.iloc[0])
+        else:
+            all_dfs = [query.getById(id) for query in self.categoryQuery]
+            merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+            if merged_df.empty:
+                return None
+            else:
+                row = merged_df.iloc[0]
+                if row["model"] == "area":
+                    return Area(row["name"])
+                if row["model"] == "category":
+                    return Category(row["name"], row["quartile"])
+                if row["model"] == "journal":
+                    identifier = ",".join([row["identifier_1"], row["identifier_2"]])
+                    dict = {"identifier": identifier, "title": "", "languages": "",
+                            "publisher": None, "seal": False, "licence": "", "apc": False}
+                    return self.buildJournal(dict)
 
     def getAllJournals(self):
         all_dfs = [query.getAllJournals() for query in self.journalQuery]
