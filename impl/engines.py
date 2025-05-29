@@ -158,7 +158,32 @@ class BasicQueryEngine:
         licence = row["licence"]
         apc = row["apc"] == "Yes"
 
-        return Journal(ids, title, languages, publisher, seal, licence, apc)
+        categories = self.getJournalCategories(set(ids))
+        areas = self.getJournalAreas(set(ids))
+
+        return Journal(ids, title, languages, publisher, seal, licence, apc, categories, areas)
+
+    def getJournalCategories(self, journal_ids):
+        all_dfs = [query.getJournalCategories(journal_ids) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        categories = []
+        for index, row in merged_df.iterrows():
+            category = Category(row["name"], row["quartile"])
+            categories.append(category)
+
+        return categories
+
+    def getJournalAreas(self, journal_ids):
+        all_dfs = [query.getJournalAreas(journal_ids) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        areas = []
+        for index, row in merged_df.iterrows():
+            area = Area(row["name"])
+            areas.append(area)
+
+        return areas
 
 class FullQueryEngine(BasicQueryEngine):
     def getJournalsInCategoriesWithQuartile(self, category_ids, quartiles):
