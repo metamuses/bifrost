@@ -140,7 +140,7 @@ class CategoryUploadHandler(UploadHandler):
         df_journals = pd.DataFrame([
             {"id": jid, "identifier_1": id1, "identifier_2": id2}
             for jid, id1, id2 in journals
-        ])
+        ]).drop_duplicates(["identifier_1", "identifier_2"])
 
         df_categories = pd.DataFrame([
             {"id": cid, "name": name, "quartile": quartile}
@@ -405,6 +405,76 @@ class CategoryQueryHandler(QueryHandler):
             JOIN journals ON journals_areas.journal_id = journals.id
             WHERE journals.identifier_1 IN ({q}) OR journals.identifier_2 IN ({q})
         """
+
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            df = pd.read_sql(query, con)
+
+        return df
+
+    def getJournalsByCategoryWithQuartile(self, category_ids, quartiles):
+        if not category_ids or not quartiles:
+            query = "SELECT DISTINCT identifier_1, identifier_2 FROM journals"
+        else:
+            conditions = [
+                f"(categories.name = '{name}' AND categories.quartile = '{quartile}')"
+                for name in category_ids
+                for quartile in quartiles
+            ]
+
+            where_clause = " OR ".join(conditions)
+
+            query = f"""
+            SELECT DISTINCT journals.identifier_1, journals.identifier_2
+            FROM journals
+            JOIN journals_categories ON journals.id = journals_categories.journal_id
+            JOIN categories ON journals_categories.category_id = categories.id
+            WHERE {where_clause};
+            """
+
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            df = pd.read_sql(query, con)
+
+        return df
+
+    def getJournalsByArea(self, areas_ids):
+        if not areas_ids:
+            query = "SELECT DISTINCT identifier_1, identifier_2 FROM journals"
+        else:
+            a = ','.join(f"'{item}'" for item in areas_ids)
+            query = f"""
+            SELECT DISTINCT journals.identifier_1, journals.identifier_2
+            FROM journals
+            JOIN journals_areas ON journals.id = journals_areas.journal_id
+            JOIN areas ON journals_areas.area_id = areas.id
+            WHERE areas.name IN ({a});
+            """
+        with sqlite3.connect(self.getDbPathOrUrl()) as con:
+            df = pd.read_sql(query, con)
+
+        return df
+
+    def getJournalsByAreaAndCategoryWithQuartile(self, areas_ids, category_ids, quartiles):
+        if not areas_ids or not category_ids or not quartiles:
+            query = "SELECT DISTINCT identifier_1, identifier_2 FROM journals"
+        else:
+            a = ','.join(f"'{item}'" for item in areas_ids)
+            conditions = [
+                f"(categories.name = '{name}' AND categories.quartile = '{quartile}')"
+                for name in category_ids
+                for quartile in quartiles
+            ]
+
+            where_clause = " OR ".join(conditions)
+
+            query = f"""
+            SELECT DISTINCT journals.identifier_1, journals.identifier_2
+            FROM journals
+            JOIN journals_areas ON journals.id = journals_areas.journal_id
+            JOIN areas ON journals_areas.area_id = areas.id
+            JOIN journals_categories ON journals.id = journals_categories.journal_id
+            JOIN categories ON journals_categories.category_id = categories.id
+            WHERE areas.name IN ({a}) AND ({where_clause});
+            """
 
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             df = pd.read_sql(query, con)

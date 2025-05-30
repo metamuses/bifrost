@@ -203,10 +203,37 @@ class BasicQueryEngine:
 
         return areas
 
+    def filterJournalsByIds(self, df, ids):
+        merged_df = pd.DataFrame()
+        for couple in ids:
+            for id in couple:
+                if id is None:
+                    continue
+                new_df = df[df["identifier"].str.contains(id, na=False)]
+                merged_df = pd.concat([merged_df, new_df]).drop_duplicates().reset_index(drop=True)
+                if not new_df.empty:
+                    break
+
+        return merged_df
+
 class FullQueryEngine(BasicQueryEngine):
     def getJournalsInCategoriesWithQuartile(self, category_ids, quartiles):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsByCategoryWithQuartile(category_ids, quartiles) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        identifiers = merged_df.values.tolist()
+
+        all_dfs = [query.getAllJournals() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        filtered_df = self.filterJournalsByIds(merged_df, identifiers)
+
+        journals = []
+        for index, row in filtered_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getJournalsInAreasWithLicense(self, areas_ids, licenses):
         # TODO: Implement this class
