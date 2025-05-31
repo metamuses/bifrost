@@ -41,7 +41,7 @@ class Journal(IdentifiableEntity):
     def getPublisher(self):
         return self.publisher
 
-    def hasDOASeal(self):
+    def hasDOAJSeal(self):
         return self.seal
 
     def getLicence(self):

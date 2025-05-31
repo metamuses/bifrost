@@ -101,7 +101,7 @@ class BasicQueryEngine:
 
         return journals
 
-    def getJournalsWithDOASeal(self):
+    def getJournalsWithDOAJSeal(self):
         all_dfs = [query.getJournalsWithDOAJSeal() for query in self.journalQuery]
         merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
@@ -236,9 +236,37 @@ class FullQueryEngine(BasicQueryEngine):
         return journals
 
     def getJournalsInAreasWithLicense(self, areas_ids, licenses):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsByArea(areas_ids) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        identifiers = merged_df.values.tolist()
+
+        all_dfs = [query.getJournalsWithLicense() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        filtered_df = self.filterJournalsByIds(merged_df, identifiers)
+
+        journals = []
+        for index, row in filtered_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals
 
     def getDiamondJournalsInAreasAndCategoriesWithQuartile(self, areas_ids, category_ids, quartiles):
-        # TODO: Implement this class
-        pass
+        all_dfs = [query.getJournalsByAreaAndCategoryWithQuartile(areas_ids, category_ids, quartiles) for query in self.categoryQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        identifiers = merged_df.values.tolist()
+
+        all_dfs = [query.getJournalsWithoutAPC() for query in self.journalQuery]
+        merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
+
+        filtered_df = self.filterJournalsByIds(merged_df, identifiers)
+
+        journals = []
+        for index, row in filtered_df.iterrows():
+            journal = self.buildJournal(row)
+            journals.append(journal)
+
+        return journals

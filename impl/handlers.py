@@ -274,6 +274,15 @@ class JournalQueryHandler(QueryHandler):
 
         return df
 
+    def getJournalsWithoutAPC(self):
+        filter = 'FILTER(STR(?apc) = "No")'
+        query = self.BASE_QUERY.format(filter=filter)
+
+        endpoint = self.getDbPathOrUrl()
+        df = get(endpoint, query, True)
+
+        return df
+
     def getJournalsWithDOAJSeal(self):
         filter = 'FILTER(STR(?seal) = "Yes")'
         query = self.BASE_QUERY.format(filter=filter)
