@@ -241,7 +241,7 @@ class FullQueryEngine(BasicQueryEngine):
 
         identifiers = merged_df.values.tolist()
 
-        all_dfs = [query.getJournalsWithLicense() for query in self.journalQuery]
+        all_dfs = [query.getJournalsWithLicense(licenses) for query in self.journalQuery]
         merged_df = pd.concat(all_dfs).drop_duplicates().reset_index(drop=True) if all_dfs else pd.DataFrame()
 
         filtered_df = self.filterJournalsByIds(merged_df, identifiers)
