@@ -24,8 +24,7 @@ class UploadHandler(Handler):
         super().__init__()
 
     def pushDataToDb(self, path):
-        # Implemented in subclasses
-        pass
+        pass # Implemented in subclasses
 
 class JournalUploadHandler(UploadHandler):
     def __init__(self):
@@ -35,10 +34,10 @@ class JournalUploadHandler(UploadHandler):
         if not self.getDbPathOrUrl():
             return False
 
-        # Define class
+        base_url = "https://github.com/metamuses/bifrost/"
+
         Journal = URIRef("https://schema.org/Periodical")
 
-        # Define attributes of the class
         title = URIRef("https://schema.org/name")
         identifier = URIRef("https://schema.org/identifier")
         language = URIRef("https://schema.org/inLanguage")
@@ -46,9 +45,6 @@ class JournalUploadHandler(UploadHandler):
         seal = URIRef("https://www.wikidata.org/wiki/Q73548471")
         license = URIRef("https://schema.org/license")
         apc = URIRef("https://www.wikidata.org/wiki/Q15291071")
-
-        # Define base URL
-        base_url = "https://github.com/epistrephein/journaler/"
 
         graph = Graph()
 
@@ -87,11 +83,9 @@ class CategoryUploadHandler(UploadHandler):
         if not self.getDbPathOrUrl():
             return False
 
-        # Read JSON file
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Initialize variables
         journals = []
 
         categories = set()
@@ -101,7 +95,6 @@ class CategoryUploadHandler(UploadHandler):
         journals_areas = []
         areas_categories = []
 
-        # Normalize data
         for index, entry in enumerate(data):
             journal_id = index + 1
             identifiers = entry.get("identifiers", [])
@@ -118,7 +111,6 @@ class CategoryUploadHandler(UploadHandler):
 
             entry_areas = entry.get("areas", [])
 
-            # Collect sets
             for cat in entry_categories:
                 categories.add(cat)
                 journals_categories.append((journal_id, cat))
@@ -127,16 +119,13 @@ class CategoryUploadHandler(UploadHandler):
                 areas.add(area)
                 journals_areas.append((journal_id, area))
 
-            # Area-category associations
             for area in entry_areas:
                 for cat in entry_categories:
                     areas_categories.append((area, cat))
 
-        # Deduplicate categories and areas
         category_id_map = {v: i+1 for i, v in enumerate(categories)}
         area_id_map = {v: i+1 for i, v in enumerate(areas)}
 
-        # DataFrames
         df_journals = pd.DataFrame([
             {"id": jid, "identifier_1": id1, "identifier_2": id2}
             for jid, id1, id2 in journals
@@ -167,7 +156,6 @@ class CategoryUploadHandler(UploadHandler):
             for a, c in areas_categories
         ]).drop_duplicates()
 
-        # Save to SQLite
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
             df_journals.to_sql("journals", con, index=False, if_exists="replace")
             df_categories.to_sql("categories", con, index=False, if_exists="replace")
@@ -183,12 +171,11 @@ class QueryHandler(Handler):
         super().__init__()
 
     def getById(self, id):
-        # Implemented in subclasses
-        pass
+        pass # Implemented in subclasses
 
 class JournalQueryHandler(QueryHandler):
     BASE_QUERY = """
-        PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX schema: <https://schema.org/>
         PREFIX wiki: <https://www.wikidata.org/wiki/>
 
@@ -298,19 +285,16 @@ class CategoryQueryHandler(QueryHandler):
 
     def getById(self, id):
         with sqlite3.connect(self.getDbPathOrUrl()) as con:
-            # Check if the area exists
             area_query = f"SELECT * FROM areas WHERE name = '{id}' LIMIT 1"
             area_df = pd.read_sql(area_query, con)
             if not area_df.empty:
                 return area_df.assign(model="area")
 
-            # Check if the category exists
             category_query = f"SELECT * FROM categories WHERE name = '{id}' LIMIT 1"
             category_df = pd.read_sql(category_query, con)
             if not category_df.empty:
                 return category_df.assign(model="category")
 
-            # Check if the journal exists
             journal_query = f"SELECT * FROM journals WHERE identifier_1 = '{id}' OR identifier_2 = '{id}' LIMIT 1"
             journal_df = pd.read_sql(journal_query, con)
             if not journal_df.empty:
