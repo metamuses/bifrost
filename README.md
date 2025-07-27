@@ -19,7 +19,7 @@ gods (Asgard). In a similar spirit, this application acts as a bridge between
 two different data storage systems, a relational SQLite database and a Blazegraph
 SPARQL one, providing a unified interface to the data stored in both.
 
-## Team Members
+## Team members
 - [Tommaso Barbato](https://github.com/epistrephein)
 - [Martina Uccheddu](https://github.com/martinaucch)
 - [Nicol D'Amelio](https://github.com/nicoldamelio)
