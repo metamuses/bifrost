@@ -33,7 +33,7 @@ class TestProjectBasic(unittest.TestCase):
     category = "data" + sep + "scimago.json"
     relational = "." + sep + "relational.db"
     graph = "http://127.0.0.1:9999/blazegraph/sparql"
-
+    
     def test_01_JournalUploadHandler(self):
         u = JournalUploadHandler()
         self.assertTrue(u.setDbPathOrUrl(self.graph))
@@ -45,7 +45,7 @@ class TestProjectBasic(unittest.TestCase):
         self.assertTrue(u.setDbPathOrUrl(self.relational))
         self.assertEqual(u.getDbPathOrUrl(), self.relational)
         self.assertTrue(u.pushDataToDb(self.category))
-
+    
     def test_03_JournalQueryHandler(self):
         q = JournalQueryHandler()
         self.assertTrue(q.setDbPathOrUrl(self.graph))
@@ -59,7 +59,7 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getJournalsWithLicense({"just_a_test"}), DataFrame)
         self.assertIsInstance(q.getJournalsWithAPC(), DataFrame)
         self.assertIsInstance(q.getJournalsWithDOAJSeal(), DataFrame)
-
+    
     def test_04_ProcessDataQueryHandler(self):
         q = CategoryQueryHandler()
         self.assertTrue(q.setDbPathOrUrl(self.relational))
@@ -72,7 +72,7 @@ class TestProjectBasic(unittest.TestCase):
         self.assertIsInstance(q.getCategoriesWithQuartile({"just_a_test"}), DataFrame)
         self.assertIsInstance(q.getCategoriesAssignedToAreas({"just_a_test"}), DataFrame)
         self.assertIsInstance(q.getAreasAssignedToCategories({"just_a_test"}), DataFrame)
-
+        
     def test_05_FullQueryEngine(self):
         jq = JournalQueryHandler()
         jq.setDbPathOrUrl(self.graph)
@@ -155,4 +155,4 @@ class TestProjectBasic(unittest.TestCase):
         r = fq.getDiamondJournalsInAreasAndCategoriesWithQuartile({"just_a_test"}, {"just_a_test"}, {"just_a_test"})
         self.assertIsInstance(r, list)
         for i in r:
-            self.assertIsInstance(i, Journal)
+            self.assertIsInstance(i, Journal) 
